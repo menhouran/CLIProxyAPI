@@ -413,6 +413,8 @@ func newDefaultAuthManager() *sdkAuth.Manager {
 		sdkAuth.NewCodexAuthenticator(),
 		sdkAuth.NewClaudeAuthenticator(),
 		sdkAuth.NewXAIAuthenticator(),
+		sdkAuth.NewCodeBuddyAuthenticator(),
+		sdkAuth.NewQoderAuthenticator(),
 	)
 }
 
@@ -861,6 +863,10 @@ func (s *Service) ensureExecutorsForAuthWithMode(a *coreauth.Auth, forceReplace 
 		s.coreManager.RegisterExecutor(executor.NewKimiExecutor(s.cfg))
 	case "xai":
 		s.coreManager.RegisterExecutor(executor.NewXAIExecutor(s.cfg))
+	case "codebuddy":
+		s.coreManager.RegisterExecutor(executor.NewCodeBuddyExecutor(s.cfg))
+	case "qoder":
+		s.coreManager.RegisterExecutor(executor.NewQoderExecutor(s.cfg))
 	default:
 		providerKey := strings.ToLower(strings.TrimSpace(a.Provider))
 		if providerKey == "" {
@@ -1193,6 +1199,8 @@ func (s *Service) registerHomeExecutors() {
 	s.coreManager.RegisterExecutor(executor.NewAIStudioExecutor(s.cfg, "", s.wsGateway))
 	s.coreManager.RegisterExecutor(executor.NewAntigravityExecutor(s.cfg))
 	s.coreManager.RegisterExecutor(executor.NewKimiExecutor(s.cfg))
+	s.coreManager.RegisterExecutor(executor.NewCodeBuddyExecutor(s.cfg))
+	s.coreManager.RegisterExecutor(executor.NewQoderExecutor(s.cfg))
 	s.coreManager.RegisterExecutor(executor.NewOpenAICompatExecutor("openai-compatibility", s.cfg))
 }
 
