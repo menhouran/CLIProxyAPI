@@ -27,6 +27,9 @@ var modelsURLs = []string{
 //go:embed models/models.json
 var embeddedModelsJSON []byte
 
+//go:embed models/models_fallback.json
+var embeddedFallbackModelsJSON []byte
+
 type modelStore struct {
 	mu   sync.RWMutex
 	data *staticModelsJSON
@@ -120,6 +123,9 @@ func tryRefreshModels(ctx context.Context, label string) {
 		log.Warnf("%s: fetch failed from all URLs, keeping current data", label)
 		return
 	}
+
+	// Ensure locally-defined providers not yet in the remote catalog survive.
+	preserveLocalProviderModels(parsed)
 
 	// Detect changes before updating store.
 	changed := detectChangedProviders(oldData, parsed)
@@ -345,6 +351,27 @@ func validateModelsCatalog(data *staticModelsJSON) error {
 		}
 	}
 	return nil
+}
+
+// preserveLocalProviderModels ensures provider models defined only in the
+// local embedded fallback — such as codebuddy and qoder which may not yet
+// exist in the remote catalog — survive a remote data refresh.
+// The fallback file (models_fallback.json) is never touched by CI, so it is
+// always present regardless of the Refresh models catalog step.
+func preserveLocalProviderModels(parsed *staticModelsJSON) {
+	if len(parsed.CodeBuddy) > 0 && len(parsed.Qoder) > 0 {
+		return // remote already has them
+	}
+	var fallback staticModelsJSON
+	if err := json.Unmarshal(embeddedFallbackModelsJSON, &fallback); err != nil {
+		return
+	}
+	if len(parsed.CodeBuddy) == 0 && len(fallback.CodeBuddy) > 0 {
+		parsed.CodeBuddy = fallback.CodeBuddy
+	}
+	if len(parsed.Qoder) == 0 && len(fallback.Qoder) > 0 {
+		parsed.Qoder = fallback.Qoder
+	}
 }
 
 func validateModelSection(section string, models []*ModelInfo) error {
