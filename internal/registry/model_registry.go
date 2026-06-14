@@ -62,6 +62,10 @@ type ModelInfo struct {
 	// This is optional and currently used for Gemini thinking budget normalization.
 	Thinking *ThinkingSupport `json:"thinking,omitempty"`
 
+	// SupportedEndpoints lists the API endpoints this model supports
+	// (e.g., "/chat/completions", "/messages", "/responses").
+	SupportedEndpoints []string `json:"supported_endpoints,omitempty"`
+
 	// UserDefined indicates this model was defined through config file's models[]
 	// array (e.g., openai-compatibility.*.models[], *-api-key.models[]).
 	// UserDefined models have thinking configuration passed through without validation.

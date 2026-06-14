@@ -28,6 +28,8 @@ type staticModelsJSON struct {
 	Kimi        []*ModelInfo `json:"kimi"`
 	Antigravity []*ModelInfo `json:"antigravity"`
 	XAI         []*ModelInfo `json:"xai"`
+	Qoder       []*ModelInfo `json:"qoder"`
+	CodeBuddy   []*ModelInfo `json:"codebuddy"`
 }
 
 // GetClaudeModels returns the standard Claude model definitions.
@@ -113,6 +115,16 @@ func AntigravityWebSearchModelFor(modelID string) string {
 // GetXAIModels returns the standard xAI Grok model definitions.
 func GetXAIModels() []*ModelInfo {
 	return WithXAIBuiltins(cloneModelInfos(getModels().XAI))
+}
+
+// GetQoderModels returns the standard Qoder model definitions (tier + frontier models).
+func GetQoderModels() []*ModelInfo {
+	return cloneModelInfos(getModels().Qoder)
+}
+
+// GetCodeBuddyModels returns the standard CodeBuddy (Tencent) model definitions.
+func GetCodeBuddyModels() []*ModelInfo {
+	return cloneModelInfos(getModels().CodeBuddy)
 }
 
 // WithCodexBuiltins injects hard-coded Codex-only model definitions that should
@@ -271,6 +283,8 @@ func cloneModelInfos(models []*ModelInfo) []*ModelInfo {
 //   - kimi
 //   - antigravity
 //   - xai
+//   - qoder
+//   - codebuddy
 func GetStaticModelDefinitionsByChannel(channel string) []*ModelInfo {
 	key := strings.ToLower(strings.TrimSpace(channel))
 	switch key {
@@ -292,6 +306,10 @@ func GetStaticModelDefinitionsByChannel(channel string) []*ModelInfo {
 		return GetAntigravityModels()
 	case "xai", "x-ai", "grok":
 		return GetXAIModels()
+	case "qoder":
+		return GetQoderModels()
+	case "codebuddy":
+		return GetCodeBuddyModels()
 	default:
 		return nil
 	}
@@ -315,6 +333,8 @@ func LookupStaticModelInfo(modelID string) *ModelInfo {
 		data.Kimi,
 		data.Antigravity,
 		data.XAI,
+		data.Qoder,
+		data.CodeBuddy,
 	}
 	for _, models := range allModels {
 		for _, m := range models {
