@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
 	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
@@ -25,6 +26,40 @@ func NewManager(store coreauth.Store, authenticators ...Authenticator) *Manager 
 		mgr.Register(authenticators[i])
 	}
 	return mgr
+}
+
+// ListProviders returns the known provider metadata, marking each as configured
+// when a corresponding authenticator has been registered.
+func (m *Manager) ListProviders() []ProviderInfo {
+	configuredKeys := make(map[string]bool)
+	if m.authenticators != nil {
+		for key := range m.authenticators {
+			configuredKeys[key] = true
+		}
+	}
+
+	seen := make(map[string]bool)
+	result := make([]ProviderInfo, 0, len(providerMetadata)+len(configuredKeys))
+
+	for key, info := range providerMetadata {
+		info.Configured = configuredKeys[key]
+		result = append(result, info)
+		seen[key] = true
+	}
+
+	for key := range configuredKeys {
+		if !seen[key] {
+			result = append(result, ProviderInfo{
+				Key:         key,
+				DisplayName: key,
+				FlowType:    "unknown",
+				Configured:  true,
+			})
+		}
+	}
+
+	sort.Slice(result, func(i, j int) bool { return result[i].Key < result[j].Key })
+	return result
 }
 
 // Register adds or replaces an authenticator keyed by its provider identifier.

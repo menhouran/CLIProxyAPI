@@ -751,6 +751,7 @@ func (s *Server) registerManagementRoutes() {
 		mgmt.PATCH("/vertex-api-key", s.mgmt.PatchVertexCompatKey)
 		mgmt.DELETE("/vertex-api-key", s.mgmt.DeleteVertexCompatKey)
 
+		mgmt.GET("/oauth-providers", s.mgmt.GetOAuthProviders)
 		mgmt.GET("/oauth-excluded-models", s.mgmt.GetOAuthExcludedModels)
 		mgmt.PUT("/oauth-excluded-models", s.mgmt.PutOAuthExcludedModels)
 		mgmt.PATCH("/oauth-excluded-models", s.mgmt.PatchOAuthExcludedModels)
@@ -1679,6 +1680,15 @@ func (s *Server) SetWebsocketAuthChangeHandler(fn func(bool, bool)) {
 		return
 	}
 	s.wsAuthChanged = fn
+}
+
+// SetSDKAuthManager passes the SDK auth manager to the management handler
+// so it can serve the OAuth provider list (GET /oauth-providers).
+func (s *Server) SetSDKAuthManager(manager *sdkAuth.Manager) {
+	if s == nil || s.mgmt == nil {
+		return
+	}
+	s.mgmt.SetSDKAuthManager(manager)
 }
 
 // (management handlers moved to internal/api/handlers/management)

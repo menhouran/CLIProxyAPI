@@ -949,6 +949,12 @@ func (s *Service) registerExecutorForAuth(a *coreauth.Auth, forceReplace bool) {
 		s.coreManager.RegisterExecutor(executor.NewKimiExecutor(s.cfg))
 	case "xai":
 		s.coreManager.RegisterExecutor(executor.NewXAIExecutor(s.cfg))
+	case "codebuddy":
+		s.coreManager.RegisterExecutor(executor.NewCodeBuddyExecutor(s.cfg))
+	case "codebuddy-ai":
+		s.coreManager.RegisterExecutor(executor.NewCodeBuddyAIExecutor(s.cfg))
+	case "qoder":
+		s.coreManager.RegisterExecutor(executor.NewQoderExecutor(s.cfg))
 	default:
 		providerKey := strings.ToLower(strings.TrimSpace(a.Provider))
 		if providerKey == "" {
@@ -1491,6 +1497,10 @@ func (s *Service) Run(ctx context.Context) error {
 		s.authManager = newDefaultAuthManager()
 	}
 
+	if s.server != nil && s.authManager != nil {
+		s.server.SetSDKAuthManager(s.authManager)
+	}
+
 	if homeEnabled {
 		s.startHomeSubscriber(ctx)
 	}
@@ -1826,6 +1836,24 @@ func (s *Service) registerModelsForAuth(ctx context.Context, a *coreauth.Auth) {
 		models = applyExcludedModels(models, excluded)
 	case "xai":
 		models = registry.GetXAIModels()
+		models = applyExcludedModels(models, excluded)
+	case "codebuddy":
+		models = executor.FetchCodeBuddyModels(ctx, a, s.cfg)
+		if len(models) == 0 {
+			models = registry.GetCodeBuddyModels()
+		}
+		models = applyExcludedModels(models, excluded)
+	case "codebuddy-ai":
+		models = executor.FetchCodeBuddyAIModels(ctx, a, s.cfg)
+		if len(models) == 0 {
+			models = registry.GetCodeBuddyAIModels()
+		}
+		models = applyExcludedModels(models, excluded)
+	case "qoder":
+		models = executor.FetchQoderModels(ctx, a, s.cfg)
+		if len(models) == 0 {
+			models = registry.GetQoderModels()
+		}
 		models = applyExcludedModels(models, excluded)
 	default:
 		// Handle OpenAI-compatibility providers by name using config

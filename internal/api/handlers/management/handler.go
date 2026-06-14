@@ -56,6 +56,7 @@ type Handler struct {
 	pluginStoreHTTPClient  pluginstore.HTTPDoer
 	pluginReleaseCacheMu   sync.Mutex
 	pluginReleaseCache     map[string]pluginReleaseCacheEntry
+	sdkAuthManager         *sdkAuth.Manager
 }
 
 // NewHandler creates a new management handler instance.
@@ -192,6 +193,14 @@ func (h *Handler) SetPostAuthHook(hook coreauth.PostAuthHook) {
 // SetPostAuthPersistHook registers a hook to be called after auth persistence.
 func (h *Handler) SetPostAuthPersistHook(hook coreauth.PostAuthHook) {
 	h.postAuthPersistHook = hook
+}
+
+// SetSDKAuthManager sets the SDK auth manager used for provider listing.
+func (h *Handler) SetSDKAuthManager(manager *sdkAuth.Manager) {
+	if h == nil {
+		return
+	}
+	h.sdkAuthManager = manager
 }
 
 // Middleware enforces access control for management endpoints.
