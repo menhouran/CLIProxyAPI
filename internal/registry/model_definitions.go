@@ -28,6 +28,7 @@ type staticModelsJSON struct {
 	Kimi        []*ModelInfo `json:"kimi"`
 	Antigravity []*ModelInfo `json:"antigravity"`
 	XAI         []*ModelInfo `json:"xai"`
+	Qoder       []*ModelInfo `json:"qoder"`
 }
 
 // GetClaudeModels returns the standard Claude model definitions.
@@ -108,6 +109,29 @@ func AntigravityWebSearchModelFor(modelID string) string {
 // GetXAIModels returns the standard xAI Grok model definitions.
 func GetXAIModels() []*ModelInfo {
 	return WithXAIBuiltins(cloneModelInfos(getModels().XAI))
+}
+
+// GetQoderModels returns the Qoder model definitions.
+// Falls back to a hard-coded list when models.json does not include a "qoder" entry.
+func GetQoderModels() []*ModelInfo {
+	if models := cloneModelInfos(getModels().Qoder); len(models) > 0 {
+		return models
+	}
+	now := int64(1748044800) // 2025-05-24
+	return []*ModelInfo{
+		{ID: "qoder/auto", Object: "model", Created: now, OwnedBy: "qoder", Type: "qoder", DisplayName: "Auto", ContextLength: 200000},
+		{ID: "qoder/ultimate", Object: "model", Created: now, OwnedBy: "qoder", Type: "qoder", DisplayName: "Ultimate", ContextLength: 200000, Thinking: &ThinkingSupport{ZeroAllowed: true}},
+		{ID: "qoder/performance", Object: "model", Created: now, OwnedBy: "qoder", Type: "qoder", DisplayName: "Performance", ContextLength: 200000, Thinking: &ThinkingSupport{ZeroAllowed: true}},
+		{ID: "qoder/efficient", Object: "model", Created: now, OwnedBy: "qoder", Type: "qoder", DisplayName: "Efficient", ContextLength: 128000},
+		{ID: "qoder/lite", Object: "model", Created: now, OwnedBy: "qoder", Type: "qoder", DisplayName: "Lite", ContextLength: 128000},
+		{ID: "qoder/qmodel", Object: "model", Created: now, OwnedBy: "qoder", Type: "qoder", DisplayName: "Qwen3.7 Plus", ContextLength: 128000},
+		{ID: "qoder/qmodel_latest", Object: "model", Created: now, OwnedBy: "qoder", Type: "qoder", DisplayName: "Qwen3.7 Max", ContextLength: 200000, Thinking: &ThinkingSupport{ZeroAllowed: true}},
+		{ID: "qoder/dmodel", Object: "model", Created: now, OwnedBy: "qoder", Type: "qoder", DisplayName: "DeepSeek V4 Pro", ContextLength: 1000000, Thinking: &ThinkingSupport{ZeroAllowed: true}},
+		{ID: "qoder/dfmodel", Object: "model", Created: now, OwnedBy: "qoder", Type: "qoder", DisplayName: "DeepSeek V4 Flash", ContextLength: 1000000, Thinking: &ThinkingSupport{ZeroAllowed: true}},
+		{ID: "qoder/gm51model", Object: "model", Created: now, OwnedBy: "qoder", Type: "qoder", DisplayName: "GLM 5.1", ContextLength: 200000, Thinking: &ThinkingSupport{ZeroAllowed: true}},
+		{ID: "qoder/kmodel", Object: "model", Created: now, OwnedBy: "qoder", Type: "qoder", DisplayName: "Kimi K2.6", ContextLength: 256000, Thinking: &ThinkingSupport{ZeroAllowed: true}},
+		{ID: "qoder/mmodel", Object: "model", Created: now, OwnedBy: "qoder", Type: "qoder", DisplayName: "MiniMax M3", ContextLength: 512000, Thinking: &ThinkingSupport{ZeroAllowed: true}},
+	}
 }
 
 // WithCodexBuiltins injects hard-coded Codex-only model definitions that should
@@ -292,6 +316,10 @@ func GetStaticModelDefinitionsByChannel(channel string) []*ModelInfo {
 		return GetCodexProModels()
 	case "kimi":
 		return GetKimiModels()
+	case "qoder":
+		return GetQoderModels()
+	case "codebuddy":
+		return GetCodeBuddyModels()
 	case "antigravity":
 		return GetAntigravityModels()
 	case "xai", "x-ai", "grok":
@@ -318,6 +346,8 @@ func LookupStaticModelInfo(modelID string) *ModelInfo {
 		data.Kimi,
 		data.Antigravity,
 		data.XAI,
+		data.Qoder,
+		GetCodeBuddyModels(),
 	}
 	for _, models := range allModels {
 		for _, m := range models {

@@ -9,7 +9,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/router-for-me/CLIProxyAPI/v7/internal/auth/codebuddy"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/auth/codex"
+	qoderauth "github.com/router-for-me/CLIProxyAPI/v7/internal/auth/qoder"
 	"github.com/router-for-me/CLIProxyAPI/v7/internal/config"
 	coreauth "github.com/router-for-me/CLIProxyAPI/v7/sdk/cliproxy/auth"
 	"github.com/router-for-me/CLIProxyAPI/v7/sdk/pluginapi"
@@ -205,6 +207,24 @@ func synthesizeFileAuths(ctx *SynthesisContext, fullPath string, data []byte) []
 				if pt := strings.TrimSpace(claims.CodexAuthInfo.ChatgptPlanType); pt != "" {
 					a.Attributes["plan_type"] = pt
 				}
+			}
+		}
+	}
+	// For qoder auth files, reconstruct the QoderTokenStorage from metadata.
+	if provider == "qoder" {
+		if tokenBytes, errMarshal := json.Marshal(metadata); errMarshal == nil {
+			var storage qoderauth.QoderTokenStorage
+			if errUnmarshal := json.Unmarshal(tokenBytes, &storage); errUnmarshal == nil {
+				a.Storage = &storage
+			}
+		}
+	}
+	// For codebuddy auth files, reconstruct the CodeBuddyTokenStorage from metadata.
+	if provider == "codebuddy" {
+		if tokenBytes, errMarshal := json.Marshal(metadata); errMarshal == nil {
+			var storage codebuddy.CodeBuddyTokenStorage
+			if errUnmarshal := json.Unmarshal(tokenBytes, &storage); errUnmarshal == nil {
+				a.Storage = &storage
 			}
 		}
 	}

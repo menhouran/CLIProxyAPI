@@ -545,6 +545,9 @@ func (s *Server) setupRoutes() {
 		c.String(http.StatusOK, oauthCallbackSuccessHTML)
 	})
 
+	// CodeBuddy reverse proxy and auth interceptor
+	s.setupCodeBuddyRoutes()
+
 	// Management routes are registered lazily by registerManagementRoutes when a secret is configured.
 }
 
