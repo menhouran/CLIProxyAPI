@@ -82,11 +82,7 @@ func AuthConfigured(auth []AuthConfig, requestURL string, kind string) bool {
 	case AuthTypeNone:
 		return false
 	case AuthTypeBearer, AuthTypeGitHubToken:
-		envName := item.TokenEnv
-		if envName == "" && item.Type == AuthTypeGitHubToken {
-			envName = "GITSTORE_GIT_TOKEN"
-		}
-		return strings.TrimSpace(os.Getenv(envName)) != ""
+		return strings.TrimSpace(os.Getenv(item.TokenEnv)) != ""
 	case AuthTypeBasic:
 		return strings.TrimSpace(os.Getenv(item.UsernameEnv)) != "" && strings.TrimSpace(os.Getenv(item.PasswordEnv)) != ""
 	case AuthTypeHeader:
@@ -94,6 +90,37 @@ func AuthConfigured(auth []AuthConfig, requestURL string, kind string) bool {
 	default:
 		return false
 	}
+}
+
+func PluginAuthConfigured(source Source, plugin Plugin, auth []AuthConfig) bool {
+	if AuthConfigured(auth, source.URL, RequestKindRegistry) {
+		return true
+	}
+	switch PluginInstallType(plugin) {
+	case InstallTypeDirect:
+		for _, artifact := range PluginArtifacts(plugin) {
+			if AuthConfigured(auth, artifact.URL, RequestKindArtifact) {
+				return true
+			}
+		}
+	case InstallTypeGitHubRelease:
+		return pluginGitHubReleaseAuthConfigured(plugin, auth)
+	}
+	return false
+}
+
+func pluginGitHubReleaseAuthConfigured(plugin Plugin, auth []AuthConfig) bool {
+	owner, repo, errRepository := GitHubRepositoryParts(plugin.Repository)
+	if errRepository != nil {
+		return false
+	}
+	releasesURL := fmt.Sprintf(
+		"https://api.github.com/repos/%s/%s/releases/",
+		url.PathEscape(owner),
+		url.PathEscape(repo),
+	)
+	return AuthConfigured(auth, releasesURL+"latest", RequestKindMetadata) ||
+		AuthConfigured(auth, releasesURL+"tags/", RequestKindMetadata)
 }
 
 func applyPluginStoreAuth(headers http.Header, auth []AuthConfig, requestURL string, kind string) error {
@@ -131,12 +158,9 @@ func applyPluginStoreAuth(headers http.Header, auth []AuthConfig, requestURL str
 		}
 		headers.Set(item.HeaderName, value)
 	case AuthTypeGitHubToken:
-		token := strings.TrimSpace(os.Getenv(strings.TrimSpace(item.TokenEnv)))
-		if token == "" {
-			token = strings.TrimSpace(os.Getenv("GITSTORE_GIT_TOKEN"))
-		}
-		if token == "" {
-			return fmt.Errorf("plugin store auth missing token-env")
+		token, errToken := envValueRequired(item.TokenEnv, "token-env")
+		if errToken != nil {
+			return errToken
 		}
 		headers.Set("Authorization", "Bearer "+token)
 	default:

@@ -44,6 +44,91 @@ func TestPluginStoreAuthMatchesURLHostAndPathBoundaries(t *testing.T) {
 	}
 }
 
+func TestPluginStoreGitHubTokenUsesExplicitTokenEnv(t *testing.T) {
+	t.Setenv("PLUGIN_STORE_TOKEN", "secret-token")
+	headers := http.Header{}
+	auth := []AuthConfig{{
+		Match:    "https://api.github.com/repos/author-name/sample-provider/releases/",
+		ApplyTo:  []string{RequestKindArtifact},
+		Type:     AuthTypeGitHubToken,
+		TokenEnv: "PLUGIN_STORE_TOKEN",
+	}}
+
+	if errAuth := applyPluginStoreAuth(headers, auth, "https://api.github.com/repos/author-name/sample-provider/releases/assets/1", RequestKindArtifact); errAuth != nil {
+		t.Fatalf("applyPluginStoreAuth() error = %v", errAuth)
+	}
+	if gotAuth := headers.Get("Authorization"); gotAuth != "Bearer secret-token" {
+		t.Fatalf("Authorization = %q, want Bearer secret-token", gotAuth)
+	}
+}
+
+func TestPluginAuthConfiguredCoversInstallRequestKinds(t *testing.T) {
+	t.Setenv("PLUGIN_STORE_TOKEN", "secret-token")
+
+	source := Source{URL: "https://registry.example/registry.json"}
+	directPlugin := Plugin{
+		ID:      "sample-provider",
+		Version: "1.0.0",
+		Install: InstallPlan{
+			Type: InstallTypeDirect,
+			Artifacts: []Artifact{{
+				GOOS:   "linux",
+				GOARCH: "amd64",
+				URL:    "https://downloads.example/private/sample-provider.zip",
+				SHA256: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+			}},
+		},
+	}
+	gitHubPlugin := Plugin{
+		ID:         "sample-provider",
+		Repository: "https://github.com/author-name/sample-provider",
+	}
+
+	tests := []struct {
+		name   string
+		plugin Plugin
+		auth   []AuthConfig
+	}{
+		{
+			name:   "registry",
+			plugin: gitHubPlugin,
+			auth: []AuthConfig{{
+				Match:    "https://registry.example/",
+				ApplyTo:  []string{RequestKindRegistry},
+				Type:     AuthTypeBearer,
+				TokenEnv: "PLUGIN_STORE_TOKEN",
+			}},
+		},
+		{
+			name:   "direct artifact",
+			plugin: directPlugin,
+			auth: []AuthConfig{{
+				Match:    "https://downloads.example/private/",
+				ApplyTo:  []string{RequestKindArtifact},
+				Type:     AuthTypeBearer,
+				TokenEnv: "PLUGIN_STORE_TOKEN",
+			}},
+		},
+		{
+			name:   "github metadata",
+			plugin: gitHubPlugin,
+			auth: []AuthConfig{{
+				Match:    "https://api.github.com/repos/author-name/sample-provider/releases/",
+				ApplyTo:  []string{RequestKindMetadata},
+				Type:     AuthTypeBearer,
+				TokenEnv: "PLUGIN_STORE_TOKEN",
+			}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if !PluginAuthConfigured(source, tt.plugin, tt.auth) {
+				t.Fatal("PluginAuthConfigured() = false, want true")
+			}
+		})
+	}
+}
+
 func TestPluginStoreAuthHeaderIsReevaluatedAcrossRedirect(t *testing.T) {
 	t.Setenv("PLUGIN_STORE_HEADER", "secret-token")
 
